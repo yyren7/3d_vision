@@ -1,73 +1,59 @@
-# This is a sample Python script.
-
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-
-import cv2
-import numpy as np
 import open3d as o3d
+import numpy as np
 import time
-import open3d.cpu.pybind.t.pipelines.registration as treg
 
+# 读取点云
+source = o3d.io.read_point_cloud("output1.ply")
+target = o3d.io.read_point_cloud("RGBDPoints_1733466519911547.ply")
 
-def draw_registration_result(source, target, transformation):
-    source_temp = source.clone()
-    target_temp = target.clone()
+# 体素下采样（减少点云密度，加速计算）
+voxel_size = 0.05
+source_down = source.voxel_down_sample(voxel_size)
+target_down = target.voxel_down_sample(voxel_size)
 
-    source_temp.transform(transformation)
+# 估算法向量
+print("估算法向量...")
+source_down.estimate_normals(o3d.geometry.KDTreeSearchParamHybrid(radius=voxel_size * 2, max_nn=30))
+target_down.estimate_normals(o3d.geometry.KDTreeSearchParamHybrid(radius=voxel_size * 2, max_nn=30))
 
-    # This is patched version for tutorial rendering.
-    # Use `draw` function for you application.
-    o3d.visualization.draw_geometries(
-        [source_temp.to_legacy(),
-         target_temp.to_legacy()],
-        zoom=0.5,
-        front=[-0.2458, -0.8088, 0.5342],
-        lookat=[1.7745, 2.2305, 0.9787],
-        up=[0.3109, -0.5878, -0.7468])
+# 计算 FPFH 特征
+def compute_fpfh(pcd, voxel_size):
+    radius_normal = voxel_size * 2  # 法向量估算的搜索半径
+    radius_feature = voxel_size * 5  # FPFH 特征计算的搜索半径
+    pcd.estimate_normals(o3d.geometry.KDTreeSearchParamHybrid(radius=radius_normal, max_nn=30))
+    fpfh = o3d.pipelines.registration.compute_fpfh_feature(
+        pcd, o3d.geometry.KDTreeSearchParamHybrid(radius=radius_feature, max_nn=100)
+    )
+    return fpfh
 
+print("计算 FPFH 特征...")
+source_fpfh = compute_fpfh(source_down, voxel_size)
+target_fpfh = compute_fpfh(target_down, voxel_size)
 
-if __name__ == '__main__':
-    source = o3d.t.io.read_point_cloud("frag_115.ply")
-    target = o3d.t.io.read_point_cloud("frag_116.ply")
-    init_source_to_target = np.identity(4)
-    # For Colored-ICP `colors` attribute must be of the same dtype as `positions` and `normals` attribute.
-    source.point["colors"] = source.point["colors"].to(
-        o3d.core.Dtype.Float32) / 255.0
-    target.point["colors"] = target.point["colors"].to(
-        o3d.core.Dtype.Float32) / 255.0
-    max_correspondence_distance = 0.02
-    estimation = treg.TransformationEstimationForColoredICP()
-    current_transformation = np.identity(4)
-    reg_point_to_plane = treg.icp(source, target, max_correspondence_distance,
-                                  init_source_to_target, estimation)
-    criteria_list = [
-        treg.ICPConvergenceCriteria(relative_fitness=0.0001,
-                                    relative_rmse=0.0001,
-                                    max_iteration=50),
-        treg.ICPConvergenceCriteria(0.00001, 0.00001, 30),
-        treg.ICPConvergenceCriteria(0.000001, 0.000001, 14)
-    ]
+# 全局粗配准：RANSAC
+print("开始全局粗配准...")
+distance_threshold = voxel_size * 1.5
+result_ransac = o3d.pipelines.registration.registration_ransac_based_on_feature_matching(
+    source_down, target_down, source_fpfh, target_fpfh, True,
+    distance_threshold,
+    o3d.pipelines.registration.TransformationEstimationPointToPoint(),
+    4, [o3d.pipelines.registration.CorrespondenceCheckerBasedOnDistance(distance_threshold)],
+    o3d.pipelines.registration.RANSACConvergenceCriteria(400000, 0.999))
 
-    max_correspondence_distances = o3d.utility.DoubleVector([0.08, 0.04, 0.02])
+print("RANSAC 变换矩阵:\n", result_ransac.transformation)
 
-    voxel_sizes = o3d.utility.DoubleVector([0.04, 0.02, 0.01])
-    # colored pointcloud registration
-    # This is implementation of following paper
-    # J. Park, Q.-Y. Zhou, V. Koltun,
-    # Colored Point Cloud Registration Revisited, ICCV 2017
+# 使用 RANSAC 结果作为初始变换执行 ICP
+print("开始精细 ICP...")
+max_correspondence_distance = voxel_size * 0.4
+result_icp = o3d.pipelines.registration.registration_icp(
+    source_down, target_down, max_correspondence_distance, result_ransac.transformation,
+    o3d.pipelines.registration.TransformationEstimationPointToPoint(),
+    o3d.pipelines.registration.ICPConvergenceCriteria(max_iteration=20))
 
-    print("Colored point cloud registration")
-    s = time.time()
+print("ICP 优化后的变换矩阵:\n", result_icp.transformation)
 
-    reg_multiscale_icp = treg.multi_scale_icp(source, target, voxel_sizes,
-                                              criteria_list,
-                                              max_correspondence_distances,
-                                              init_source_to_target, estimation)
+# 应用变换
+source_down.transform(result_icp.transformation)
 
-    icp_time = time.time() - s
-    print("Time taken by Colored ICP: ", icp_time)
-    print("Fitness: ", reg_multiscale_icp.fitness)
-    print("Inlier RMSE: ", reg_multiscale_icp.inlier_rmse)
-
-    draw_registration_result(source, target, reg_multiscale_icp.transformation)
+# 可视化结果
+o3d.visualization.draw_geometries([source_down, target_down])
