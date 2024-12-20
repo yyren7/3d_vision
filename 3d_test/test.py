@@ -2,7 +2,7 @@ import open3d as o3d
 import numpy as np
 # 读取 PLY 文件
 # pcd = o3d.io.read_point_cloud("RGBDPoints_1733466519911547.ply")
-pcd = o3d.io.read_point_cloud("output1.ply")
+pcd = o3d.io.read_point_cloud("../output1.ply")
 # 输出点云的基本信息
 print(pcd)
 print("点云包含的点数:", len(pcd.points))

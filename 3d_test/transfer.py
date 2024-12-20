@@ -19,7 +19,7 @@ def load_asc_with_color(filename):
     return np.array(points, dtype=np.float64), np.array(colors, dtype=np.float64)
 
 # 加载 ASC 文件
-points, colors = load_asc_with_color("output1.asc")
+points, colors = load_asc_with_color("../output1.asc")
 
 # 检查数据
 print("点云坐标形状:", points.shape)
@@ -32,4 +32,4 @@ pcd.colors = o3d.utility.Vector3dVector(colors)   # 设置颜色 (0-1 范围)
 
 # 显示带颜色的点云
 o3d.visualization.draw_geometries([pcd])
-o3d.io.write_point_cloud("output1.ply", pcd)   # 保存为 PLY 文件
+o3d.io.write_point_cloud("../output1.ply", pcd)   # 保存为 PLY 文件

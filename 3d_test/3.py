@@ -1,7 +1,7 @@
 import open3d as o3d
 import numpy as np
 import cv2
-file_path = "situation1.asc"
+file_path = "../situation1.asc"
 points = np.loadtxt(file_path, delimiter=',', usecols=(0, 1, 2))
 
 # 2. 创建一个 open3d 点云对象并赋值
@@ -9,7 +9,7 @@ point_cloud = o3d.geometry.PointCloud()
 point_cloud.points = o3d.utility.Vector3dVector(points)
 
 # 3. 可视化点云
-rgb_image = cv2.imread("image.bmp")
+rgb_image = cv2.imread("../resources/image.bmp")
 
 fx = 1000  # 焦距fx
 fy = 1000  # 焦距fy

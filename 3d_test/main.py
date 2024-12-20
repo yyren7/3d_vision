@@ -3,8 +3,8 @@ import numpy as np
 import time
 
 # 读取点云
-source = o3d.io.read_point_cloud("output1.ply")
-target = o3d.io.read_point_cloud("RGBDPoints_1733466519911547.ply")
+source = o3d.io.read_point_cloud("../output1.ply")
+target = o3d.io.read_point_cloud("../RGBDPoints_1733466519911547.ply")
 
 # 体素下采样（减少点云密度，加速计算）
 voxel_size = 0.05

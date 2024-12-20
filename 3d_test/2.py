@@ -35,8 +35,8 @@ def preprocess_point_cloud(pcd, voxel_size):
 def prepare_dataset(voxel_size):
     print(":: Load two point clouds and disturb initial pose.")
 
-    source = o3d.io.read_point_cloud("cloud_bin_0.pcd")
-    target = o3d.io.read_point_cloud("cloud_bin_1.pcd")
+    source = o3d.io.read_point_cloud("../cloud_bin_0.pcd")
+    target = o3d.io.read_point_cloud("../cloud_bin_1.pcd")
     trans_init = np.asarray([[0.0, 0.0, 1.0, 0.0], [1.0, 0.0, 0.0, 0.0],
                              [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0]])
     source.transform(trans_init)
