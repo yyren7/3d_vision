@@ -1,0 +1,18 @@
+from ultralytics import YOLO
+import cv2
+# Load a COCO-pretrained YOLO11n model
+model = YOLO("yolo11n.pt")
+
+# Train the model on the COCO8 example dataset for 100 epochs
+# results = model.train(data="coco8.yaml", epochs=100, imgsz=640)
+
+results = model("./bus.png")
+print(results)  # print results
+
+# 提取标注后的图像（numpy数组格式）
+annotated_img = results[0].plot()  # 直接调用 plot()
+
+# 显示图像（需要OpenCV或Matplotlib）
+cv2.imshow("Detection Result", annotated_img)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
