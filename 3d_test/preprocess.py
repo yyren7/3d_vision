@@ -71,6 +71,6 @@ def interactive_crop_and_save(input_path, output_path):
 if __name__ == "__main__":
     # 使用示例 - 修改为您的实际路径
     input_file = "/home/ncpt-am/local_model/resources/3d/scene.ply"       # 原始场景点云路径
-    output_file = "/home/ncpt-am/local_model/resources/3d/cropped.ply"    # 截取结果保存路径
+    output_file = "/home/ncpt-am/local_model/resources/3d/scene_cropped.ply"    # 截取结果保存路径
     
     interactive_crop_and_save(input_file, output_file)
